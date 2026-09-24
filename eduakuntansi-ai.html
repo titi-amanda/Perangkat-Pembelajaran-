@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduAkuntansi AI — Generator Perangkat Pembelajaran Akuntansi SMK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy: { 950:'#081420', 900:'#0B1F33', 800:'#123655', 700:'#17436B', 600:'#1E5686' },
+          ledger: { 50:'#FAF7EF', 100:'#F3EEDF', 200:'#E7DEC5' },
+          emerald: { 700:'#0B5F49', 600:'#0E7C5F', 500:'#129470', 100:'#DCEFE7' },
+          gold: { 600:'#A87A12', 500:'#C9971F', 100:'#F5E7C4' },
+          ink: { 900:'#1B2430', 700:'#3A4658', 500:'#5C6B80' }
+        },
+        fontFamily: {
+          serif: ['Lora','ui-serif','Georgia','serif'],
+          sans: ['Inter','ui-sans-serif','system-ui','sans-serif'],
+          mono: ['JetBrains Mono','ui-monospace','SFMono-Regular','monospace']
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body{ background:#F0EDE4; }
+  ::selection{ background:#C9971F33; }
+
+  .ledger-lines{
+    background-image: repeating-linear-gradient(to bottom, transparent, transparent 27px, #17436B14 28px);
+  }
+  .tab-btn{ position:relative; }
+  .tab-btn.active{ color:#0B1F33; }
+  .tab-btn.active::after{
+    content:""; position:absolute; left:0.9rem; right:0.9rem; bottom:-1px; height:3px;
+    background:#C9971F; border-radius:2px 2px 0 0;
+  }
+  .panel{ display:none; }
+  .panel.active{ display:block; }
+
+  .flip-card{ perspective:1400px; height:230px; }
+  .flip-card-inner{
+    position:relative; width:100%; height:100%; transition:transform .55s cubic-bezier(.4,.2,.2,1);
+    transform-style:preserve-3d; cursor:pointer;
+  }
+  .flip-card.flipped .flip-card-inner{ transform:rotateY(180deg); }
+  .flip-face{
+    position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    border-radius:0.75rem; padding:1.1rem; display:flex; flex-direction:column;
+  }
+  .flip-back{ transform:rotateY(180deg); }
+
+  .spinner{
+    width:18px; height:18px; border:2.5px solid #ffffff55; border-top-color:#fff; border-radius:50%;
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .scrollbar-thin::-webkit-scrollbar{ width:8px; height:8px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb{ background:#17436B33; border-radius:999px; }
+
+  input[type="text"]:focus, input[type="password"]:focus, select:focus, textarea:focus{
+    outline:none; box-shadow:0 0 0 3px #C9971F40; border-color:#C9971F;
+  }
+
+  @media print{
+    body *{ visibility:hidden; }
+    #printArea, #printArea *{ visibility:visible; }
+    #printArea{ position:absolute; left:0; top:0; width:100%; }
+    .no-print{ display:none !important; }
+    .panel{ display:block !important; page-break-after:always; }
+  }
+</style>
+</head>
+<body class="min-h-screen font-sans text-ink-900">
+
+<header class="bg-navy-900 border-b-4 border-gold-500 no-print">
+  <div class="max-w-[1400px] mx-auto px-5 py-4 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-md bg-emerald-600 flex items-center justify-center shrink-0">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5E7C4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18"/><path d="M7 15l3.5-4 3 3L18 8"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="font-serif text-xl text-white leading-tight">EduAkuntansi <span class="text-gold-500">AI</span></h1>
+        <p class="text-[11px] text-ledger-200/70 tracking-wide">Generator Perangkat Pembelajaran — Akuntansi &amp; Keuangan Lembaga SMK</p>
+      </div>
+    </div>
+    <button id="apiKeyBtn" class="text-xs md:text-sm bg-navy-800 hover:bg-navy-700 text-ledger-100 border border-navy-600 rounded-md px-3 py-2 flex items-center gap-2 transition">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <span id="apiKeyLabel">Atur API Key</span>
+    </button>
+  </div>
+</header>
+
+<main class="max-w-[1400px] mx-auto px-5 py-6 grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
+
+  <!-- ==================== FORM INPUT (KIRI) ==================== -->
+  <aside class="no-print">
+    <div class="lg:sticky lg:top-5 bg-white rounded-lg border border-navy-900/10 shadow-sm overflow-hidden">
+      <div class="bg-navy-900 px-5 py-3">
+        <h2 class="font-serif text-white text-base">Spesifikasi Perangkat Ajar</h2>
+      </div>
+      <div class="p-5 space-y-4">
+
+        <div>
+          <label class="block text-xs font-semibold text-ink-700 mb-1">Mata Pelajaran</label>
+          <input id="mapel" type="text" value="Dasar-Dasar Akuntansi dan Keuangan Lembaga"
+                 class="w-full text-sm border border-navy-900/15 rounded-md px-3 py-2 bg-ledger-50">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-ink-700 mb-1">Fase / Kelas</label>
+          <select id="fase" class="w-full text-sm border border-navy-900/15 rounded-md px-3 py-2 bg-ledger-50">
+            <option>Fase E / Kelas X SMK</option>
+            <option>Fase F / Kelas XI SMK</option>
+            <option>Fase F / Kelas XII SMK</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-ink-700 mb-1">Elemen Pembelajaran (CP Kurikulum Merdeka)</label>
+          <select id="elemen" class="w-full text-sm border border-navy-900/15 rounded-md px-3 py-2 bg-ledger-50">
+            <option value="Elemen 1: Proses bisnis di bidang akuntansi dan keuangan lembaga">Elemen 1: Proses bisnis akuntansi &amp; keuangan lembaga</option>
+            <option value="Elemen 2: Perkembangan teknologi dan isu-isu terkini di dunia kerja bidang akuntansi (Fintech, Cloud Accounting)">Elemen 2: Teknologi &amp; isu terkini (Fintech, Cloud Accounting)</option>
+            <option value="Elemen 3: Profil job profile dan peluang usaha di bidang akuntansi dan keuangan lembaga (Freelance Bookkeeper, Technopreneur)">Elemen 3: Job profile &amp; peluang usaha (Bookkeeper, Technopreneur)</option>
+            <option value="Elemen 4: Lingkup kerja pada bidang akuntansi dan keuangan lembaga">Elemen 4: Lingkup kerja akuntansi &amp; keuangan lembaga</option>
+            <option value="Elemen 5: Penerapan K3LH dan budaya kerja industri (Ringkas, Rapi, Resik, Rawat, Rajin / 5R-5S)">Elemen 5: K3LH &amp; Budaya Kerja Industri (5R/5S)</option>
+            <option value="Elemen 6: Etika profesi dalam bidang akuntansi dan keuangan">Elemen 6: Etika profesi akuntansi &amp; keuangan</option>
+            <option value="Elemen 7: Prinsip dan konsep dasar akuntansi serta perbankan dasar">Elemen 7: Prinsip &amp; konsep dasar akuntansi, perbankan dasar</option>
+            <option value="Elemen 8: Penggunaan aplikasi pengolah angka / spreadsheet dalam pengelolaan keuangan">Elemen 8: Aplikasi pengolah angka (Spreadsheet)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-ink-700 mb-1">Topik / Spesifikasi Materi</label>
+          <textarea id="topik" rows="2" placeholder='Misal: "Persamaan Dasar Akuntansi", "Jurnal Umum", "Etika Profesi Teknisi Akuntansi Junior"'
+                    class="w-full text-sm border border-navy-900/15 rounded-md px-3 py-2 bg-ledger-50 resize-none">Persamaan Dasar Akuntansi</textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-ink-700 mb-1">Model Pembelajaran</label>
+          <select id="model_pembelajaran" class="w-full text-sm border border-navy-900/15 rounded-md px-3 py-2 bg-ledger-50">
+            <option>Problem-Based Learning (PBL)</option>
+            <option>Project-Based Learning (PjBL)</option>
+            <option>Discovery Learning</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-ink-700 mb-1">Alokasi Waktu</label>
+          <input id="alokasi" type="text" value="12 JP @ 45 Menit"
+                 class="w-full text-sm border border-navy-900/15 rounded-md px-3 py-2 bg-ledger-50">
+        </div>
+
+        <button id="generateBtn"
+                class="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-md py-3 flex items-center justify-center gap-2 transition disabled:opacity-60 disabled:cursor-not-allowed">
+          <svg id="genIcon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"/></svg>
+          <span id="genLabel">Generate Perangkat Pembelajaran</span>
+        </button>
+
+        <p id="statusMsg" class="text-xs text-ink-500 leading-relaxed"></p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==================== OUTPUT AREA (KANAN) ==================== -->
+  <section>
+    <div class="bg-white rounded-lg border border-navy-900/10 shadow-sm overflow-hidden min-h-[70vh] flex flex-col">
+
+      <nav id="tabNav" class="no-print flex items-center gap-1 overflow-x-auto scrollbar-thin border-b border-navy-900/10 bg-ledger-50 px-3 pt-3">
+        <button data-tab="modul" class="tab-btn active px-3.5 pb-3 text-sm font-medium text-ink-500 whitespace-nowrap">1. Modul Ajar / RPP</button>
+        <button data-tab="slide" class="tab-btn px-3.5 pb-3 text-sm font-medium text-ink-500 whitespace-nowrap">2. Draft Slide</button>
+        <button data-tab="kuis" class="tab-btn px-3.5 pb-3 text-sm font-medium text-ink-500 whitespace-nowrap">3. Kuis &amp; Bank Soal</button>
+        <button data-tab="flashcard" class="tab-btn px-3.5 pb-3 text-sm font-medium text-ink-500 whitespace-nowrap">4. Flashcard</button>
+        <button data-tab="lkpd" class="tab-btn px-3.5 pb-3 text-sm font-medium text-ink-500 whitespace-nowrap">5. LKPD &amp; Rubrik</button>
+        <button data-tab="glosarium" class="tab-btn px-3.5 pb-3 text-sm font-medium text-ink-500 whitespace-nowrap">6. Glosarium</button>
+      </nav>
+
+      <div class="flex items-center justify-end gap-2 px-5 py-2.5 border-b border-navy-900/10 no-print">
+        <button id="copyBtn" class="text-xs font-medium border border-navy-900/15 hover:bg-ledger-50 rounded-md px-3 py-1.5 flex items-center gap-1.5 text-ink-700">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy Text
+        </button>
+        <button id="printBtn" class="text-xs font-medium bg-navy-900 hover:bg-navy-800 text-white rounded-md px-3 py-1.5 flex items-center gap-1.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Export / Print
+        </button>
+      </div>
+
+      <div id="printArea" class="p-5 md:p-7 overflow-y-auto flex-1 ledger-lines">
+
+        <div id="emptyState" class="h-[50vh] flex flex-col items-center justify-center text-center text-ink-500 no-print">
+          <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#17436B33" stroke-width="1.5" class="mb-3"><path d="M3 3v18h18"/><path d="M7 15l3.5-4 3 3L18 8"/></svg>
+          <p class="text-sm">Lengkapi spesifikasi di panel kiri, lalu klik <b>Generate</b> untuk membuat<br>perangkat pembelajaran akuntansi secara otomatis.</p>
+        </div>
+
+        <!-- TAB 1: MODUL AJAR -->
+        <div id="panel-modul" class="panel space-y-6"></div>
+
+        <!-- TAB 2: SLIDE -->
+        <div id="panel-slide" class="panel space-y-4"></div>
+
+        <!-- TAB 3: KUIS -->
+        <div id="panel-kuis" class="panel space-y-5"></div>
+
+        <!-- TAB 4: FLASHCARD -->
+        <div id="panel-flashcard" class="panel">
+          <div class="flex items-center justify-between mb-4 no-print">
+            <p class="text-xs text-ink-500">Klik kartu untuk membalik dan melihat definisi.</p>
+          </div>
+          <div id="flashcardGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+        </div>
+
+        <!-- TAB 5: LKPD -->
+        <div id="panel-lkpd" class="panel space-y-6"></div>
+
+        <!-- TAB 6: GLOSARIUM -->
+        <div id="panel-glosarium" class="panel space-y-3"></div>
+
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="no-print max-w-[1400px] mx-auto px-5 pb-8 pt-2 text-center text-[11px] text-ink-500">
+  EduAkuntansi AI — mengacu pada Kurikulum Merdeka (BSKAP) &amp; standar akuntansi SAK/SAK ETAP/SAK EMKM. Selalu tinjau ulang hasil AI sebelum digunakan di kelas.
+</footer>
+
+<!-- ==================== MODAL API KEY ==================== -->
+<div id="apiKeyModal" class="no-print fixed inset-0 bg-navy-950/60 hidden items-center justify-center p-4 z-50">
+  <div class="bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
+    <h3 class="font-serif text-lg text-navy-900 mb-1">Atur Anthropic API Key</h3>
+    <p class="text-xs text-ink-500 mb-4 leading-relaxed">Key disimpan hanya di memori browser Anda selama sesi ini (tidak dikirim ke server manapun selain Anthropic). Untuk penggunaan produksi/publik, sambungkan lewat backend proxy agar key tidak terekspos di sisi klien.</p>
+    <input id="apiKeyInput" type="password" placeholder="sk-ant-..." class="w-full text-sm border border-navy-900/15 rounded-md px-3 py-2.5 mb-2 font-mono">
+    <label class="block text-xs font-semibold text-ink-700 mb-1 mt-3">Model</label>
+    <select id="modelSelect" class="w-full text-sm border border-navy-900/15 rounded-md px-3 py-2 mb-4">
+      <option value="claude-sonnet-5">claude-sonnet-5</option>
+      <option value="claude-opus-5-5">claude-opus-5-5</option>
+      <option value="claude-haiku-4-5-20251001">claude-haiku-4-5-20251001</option>
+    </select>
+    <div class="flex gap-2 justify-end">
+      <button id="apiKeyCancel" class="text-sm px-4 py-2 rounded-md text-ink-700 hover:bg-ledger-50">Batal</button>
+      <button id="apiKeySave" class="text-sm px-4 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ======================================================================
+   EduAkuntansi AI — Generator Perangkat Pembelajaran Akuntansi SMK
+   Single-file app: HTML + Tailwind (CDN) + Vanilla JS
+   ====================================================================== */
+
+/* ----------------------------------------------------------------------
+   1. SYSTEM PROMPT AI (ditanamkan pada pemanggilan API)
+   Persona: Pakar Kurikulum Vokasi SMK + Pengembang Bahan Ajar Akuntansi
+   ---------------------------------------------------------------------- */
+const SYSTEM_PROMPT = `Anda adalah "EduAkuntansi AI", sebuah sistem gabungan tiga peran ahli:
+1) Pakar Kurikulum Pendidikan Vokasi SMK yang menguasai Kurikulum Merdeka terbitan BSKAP (Badan Standar, Kurikulum, dan Asesmen Pendidikan) Kemendikbudristek, khususnya Capaian Pembelajaran (CP) mata pelajaran Dasar-Dasar Akuntansi dan Keuangan Lembaga untuk Fase E dan Fase F SMK Program Keahlian Akuntansi dan Keuangan Lembaga (AKL).
+2) Pengembang Bahan Ajar Akuntansi profesional yang menulis materi dengan istilah akuntansi Indonesia yang baku dan konsisten dengan Standar Akuntansi Keuangan (SAK), SAK ETAP (Entitas Tanpa Akuntabilitas Publik), dan SAK EMKM (Entitas Mikro, Kecil, dan Menengah), sesuai konteks lembaga/entitas yang dibahas.
+3) Instructional Designer senior yang merancang perangkat ajar berbasis pedagogi vokasi (Teaching Factory, PBL/PjBL/Discovery Learning) yang kontekstual dengan dunia kerja (DUDIKA) bidang akuntansi dan keuangan.
+
+TUGAS ANDA
+Berdasarkan input berupa: mata pelajaran, fase/kelas, elemen CP terpilih, topik/spesifikasi materi, model pembelajaran, dan alokasi waktu — hasilkan SATU set Perangkat Pembelajaran Komprehensif dalam format JSON tunggal yang valid, mengikuti SKEMA yang ditetapkan di bawah ini secara PERSIS (nama field tidak boleh diubah, ditambah, atau dihilangkan).
+
+PRINSIP MUTU KONTEN (WAJIB DIPATUHI)
+- Semua konten HARUS dalam Bahasa Indonesia baku, kecuali istilah teknis akuntansi berbahasa Inggris yang memang lazim digunakan di dunia kerja (misal: "trial balance", "bookkeeping", "cloud accounting"), yang harus disertai padanan/penjelasan bahasa Indonesia.
+- Gunakan istilah akuntansi Indonesia yang tepat dan konsisten: persamaan dasar akuntansi, akun riil/nominal, jurnal umum/khusus, buku besar, neraca saldo, jurnal penyesuaian, laporan laba rugi, laporan perubahan ekuitas, laporan posisi keuangan (neraca), laporan arus kas, catatan atas laporan keuangan (CALK), dsb.
+- Saat contoh kasus melibatkan entitas kecil/UMKM, acu pada SAK EMKM; saat entitas tanpa akuntabilitas publik menengah, acu pada SAK ETAP; sebutkan secara eksplisit standar mana yang relevan pada bagian yang bersangkutan.
+- Capaian Pembelajaran (CP) dan Tujuan Pembelajaran (TP) harus selaras dengan elemen CP yang dipilih pengguna, ditulis terukur (memuat kompetensi/audience-behavior-condition-degree bila relevan), dan mencerminkan level kognitif yang sesuai jenjang SMK.
+- Soal-soal HOTS harus berada pada level C4 (menganalisis), C5 (mengevaluasi), atau C6 (mencipta) Taksonomi Bloom Revisi — bukan sekadar hafalan istilah. Sertakan data/transaksi yang realistis dan angka yang konsisten secara matematis (total debit = total kredit, dsb).
+- Pembahasan/kunci jawaban harus rinci, menjelaskan LANGKAH penyelesaian, bukan hanya jawaban akhir.
+- Materi harus kontekstual dengan dunia kerja bidang akuntansi (kantor akuntan publik, bagian keuangan perusahaan dagang/jasa/manufaktur skala kecil-menengah, UMKM, lembaga pemerintahan/nirlaba bila relevan) serta memuat nilai Profil Pelajar Pancasila dan K3LH/budaya kerja 5R (Ringkas, Rapi, Resik, Rawat, Rajin) jika relevan dengan elemen.
+- Langkah pembelajaran WAJIB mengikuti sintaks resmi model pembelajaran yang dipilih:
+  * Problem-Based Learning (PBL): Orientasi peserta didik pada masalah → Mengorganisasikan peserta didik untuk belajar → Membimbing penyelidikan individu/kelompok → Mengembangkan dan menyajikan hasil karya → Menganalisis dan mengevaluasi proses pemecahan masalah.
+  * Project-Based Learning (PjBL): Penentuan pertanyaan mendasar → Mendesain perencanaan proyek → Menyusun jadwal → Memonitor kemajuan proyek → Menguji hasil → Evaluasi pengalaman.
+  * Discovery Learning: Stimulation (pemberian rangsangan) → Problem statement (identifikasi masalah) → Data collection → Data processing → Verification (pembuktian) → Generalization (menarik kesimpulan).
+- Asesmen harus mencakup asesmen diagnostik (di awal), formatif (selama proses), dan sumatif (di akhir), lengkap dengan bentuk instrumen dan indikator ketercapaian.
+- Semua angka pada tabel transaksi/soal kasus harus dalam format mata uang Rupiah (contoh: Rp5.000.000), dan konsisten secara akuntansi (neraca/jurnal harus balance).
+- Jangan menyertakan disclaimer, permintaan maaf, atau teks pembuka/penutup apa pun di luar struktur JSON.
+
+FORMAT OUTPUT — WAJIB
+Kembalikan HANYA satu objek JSON valid (dapat langsung diparse dengan JSON.parse), TANPA markdown code fence (tanpa \`\`\`), TANPA teks penjelasan sebelum atau sesudah JSON, mengikuti skema persis berikut:
+
+{
+  "modul_ajar": {
+    "identitas": {
+      "nama_penyusun": "string, isi 'Disusun dengan EduAkuntansi AI'",
+      "mata_pelajaran": "string",
+      "fase_kelas": "string",
+      "elemen": "string",
+      "topik": "string",
+      "model_pembelajaran": "string",
+      "alokasi_waktu": "string"
+    },
+    "capaian_pembelajaran": "string paragraf CP sesuai elemen terpilih",
+    "tujuan_pembelajaran": ["array 3-5 string TP terukur, diberi kode TP 1, TP 2, dst di awal string"],
+    "pemahaman_bermakna": "string 1-2 paragraf",
+    "pertanyaan_pemantik": ["array 3-4 pertanyaan pemantik"],
+    "profil_pelajar_pancasila": ["array 3-4 dimensi profil pelajar pancasila yang relevan beserta penjelasan singkat kontekstual, format: 'Dimensi: penjelasan'"],
+    "sarana_prasarana": ["array alat/bahan/sumber belajar"],
+    "langkah_pembelajaran": {
+      "pendahuluan": ["array kegiatan pendahuluan, 4-6 poin"],
+      "inti": ["array kegiatan inti mengikuti sintaks model pembelajaran terpilih secara berurutan, setiap poin diawali nama tahap sintaks dalam kurung, minimal 6 poin, mendetail dan dapat langsung dipraktikkan guru"],
+      "penutup": ["array kegiatan penutup, 3-5 poin"]
+    },
+    "asesmen": {
+      "diagnostik": "string penjelasan bentuk & contoh instrumen asesmen diagnostik",
+      "formatif": "string penjelasan bentuk & contoh instrumen asesmen formatif termasuk indikator",
+      "sumatif": "string penjelasan bentuk & contoh instrumen asesmen sumatif termasuk kriteria ketuntasan"
+    }
+  },
+  "slide_presentasi": [
+    {"no": 1, "judul": "string judul slide", "konten": ["array poin-poin isi slide, ringkas dan visual"], "catatan_pemateri": "string speaker notes rinci untuk slide ini"}
+  ],
+  "kuis": {
+    "pilihan_ganda": [
+      {"soal": "string soal HOTS", "opsi": {"A": "string", "B": "string", "C": "string", "D": "string", "E": "string"}, "jawaban": "salah satu huruf A-E", "pembahasan": "string pembahasan rinci langkah demi langkah"}
+    ],
+    "soal_kasus": [
+      {"soal": "string narasi kasus/transaksi", "data_tabel": "string tabel data transaksi dalam format teks/markdown table jika relevan, boleh string kosong jika tidak perlu tabel", "jawaban": "string jawaban lengkap", "pembahasan": "string pembahasan rinci tahap penyelesaian"}
+    ]
+  },
+  "flashcard": [
+    {"istilah_id": "string istilah akuntansi bahasa Indonesia", "istilah_en": "string padanan/istilah bahasa Inggris jika ada, boleh string kosong", "definisi": "string definisi singkat dan jelas", "contoh_kasus": "string contoh penerapan/kasus singkat"}
+  ],
+  "lkpd": {
+    "judul": "string judul LKPD",
+    "petunjuk": "string petunjuk pengerjaan untuk peserta didik",
+    "alat_bahan": ["array alat dan bahan yang dibutuhkan"],
+    "langkah_kerja": ["array langkah kerja peserta didik, runtut dan actionable, minimal 5 langkah"],
+    "pertanyaan_diskusi": ["array 3-5 pertanyaan diskusi/refleksi"],
+    "rubrik_penilaian": {
+      "kriteria": [
+        {"aspek": "string nama aspek yang dinilai", "skor_4": "string deskriptor skor 4 (sangat baik)", "skor_3": "string deskriptor skor 3 (baik)", "skor_2": "string deskriptor skor 2 (cukup)", "skor_1": "string deskriptor skor 1 (perlu bimbingan)"}
+      ]
+    }
+  },
+  "glosarium": [
+    {"istilah": "string istilah akuntansi", "definisi": "string definisi baku, acu SAK/SAK ETAP/SAK EMKM bila relevan", "referensi_industri": "string konteks/contoh penggunaan istilah tersebut di dunia kerja akuntansi"}
+  ]
+}
+
+KETENTUAN JUMLAH KONTEN MINIMAL
+- tujuan_pembelajaran: minimal 3 item.
+- pertanyaan_pemantik: minimal 3 item.
+- slide_presentasi: TEPAT 7 slide berurutan (contoh alur: 1 Judul/Apersepsi, 2 Tujuan Pembelajaran, 3-5 Materi Inti bertahap, 6 Studi Kasus/Ilustrasi, 7 Rangkuman & Refleksi) — sesuaikan judul tiap slide dengan topik.
+- kuis.pilihan_ganda: TEPAT 5 soal.
+- kuis.soal_kasus: TEPAT 2 soal, masing-masing melibatkan tabel/data transaksi.
+- flashcard: minimal 10 kartu istilah yang relevan dengan topik.
+- lkpd.langkah_kerja: minimal 5 langkah.
+- lkpd.rubrik_penilaian.kriteria: minimal 4 aspek penilaian (boleh mencakup aspek kinerja praktik/psikomotor dan aspek sikap kerja/K3LH bila relevan).
+- glosarium: minimal 10 istilah.
+
+Ingat: keluarkan HANYA JSON, dimulai dengan { dan diakhiri dengan }, tanpa teks lain apa pun.`;
+
+/* ----------------------------------------------------------------------
+   2. STATE
+   ---------------------------------------------------------------------- */
+let apiKey = "";
+let selectedModel = "claude-sonnet-5";
+let generatedData = null;
+let currentTab = "modul";
+
+/* ----------------------------------------------------------------------
+   3. API KEY MODAL
+   ---------------------------------------------------------------------- */
+const apiKeyModal = document.getElementById('apiKeyModal');
+document.getElementById('apiKeyBtn').addEventListener('click', () => {
+  apiKeyModal.classList.remove('hidden');
+  apiKeyModal.classList.add('flex');
+});
+document.getElementById('apiKeyCancel').addEventListener('click', () => {
+  apiKeyModal.classList.add('hidden');
+  apiKeyModal.classList.remove('flex');
+});
+document.getElementById('apiKeySave').addEventListener('click', () => {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  const model = document.getElementById('modelSelect').value;
+  if (val) {
+    apiKey = val;
+    selectedModel = model;
+    document.getElementById('apiKeyLabel').textContent = 'API Key Tersimpan ✓';
+  }
+  apiKeyModal.classList.add('hidden');
+  apiKeyModal.classList.remove('flex');
+});
+
+/* ----------------------------------------------------------------------
+   4. PEMANGGILAN API (Anthropic Messages API)
+   CATATAN: fetch langsung dari browser ke api.anthropic.com hanya cocok
+   untuk pengembangan/prototipe lokal. Untuk produksi publik, teruskan
+   permintaan ini melalui backend/serverless proxy agar API key Anda
+   tidak terekspos di sisi klien.
+   ---------------------------------------------------------------------- */
+async function callClaudeAPI(userPrompt) {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model: selectedModel,
+      max_tokens: 8000,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: userPrompt }]
+    })
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`API error (${response.status}): ${errText}`);
+  }
+
+  const data = await response.json();
+  const textBlock = data.content.find(c => c.type === "text");
+  if (!textBlock) throw new Error("Respons AI tidak mengandung teks.");
+
+  let raw = textBlock.text.trim();
+  raw = raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "");
+
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    throw new Error("Gagal mem-parsing JSON dari AI. Coba klik Generate ulang.");
+  }
+}
+
+function buildUserPrompt() {
+  const mapel = document.getElementById('mapel').value.trim();
+  const fase = document.getElementById('fase').value;
+  const elemenSelect = document.getElementById('elemen');
+  const elemen = elemenSelect.options[elemenSelect.selectedIndex].value;
+  const topik = document.getElementById('topik').value.trim();
+  const model_pembelajaran = document.getElementById('model_pembelajaran').value;
+  const alokasi = document.getElementById('alokasi').value.trim();
+
+  return `Buatkan Perangkat Pembelajaran Komprehensif sesuai skema JSON yang telah ditentukan, dengan spesifikasi berikut:
+- Mata Pelajaran: ${mapel}
+- Fase/Kelas: ${fase}
+- Elemen Pembelajaran (CP): ${elemen}
+- Topik/Spesifikasi Materi: ${topik}
+- Model Pembelajaran: ${model_pembelajaran}
+- Alokasi Waktu: ${alokasi}
+
+Pastikan seluruh konten benar-benar spesifik pada topik "${topik}" (bukan generik), menggunakan istilah akuntansi Indonesia yang baku (SAK/SAK ETAP/SAK EMKM sesuai konteks), dan sintaks langkah pembelajaran mengikuti model "${model_pembelajaran}" secara persis. Kembalikan hanya JSON sesuai skema, tanpa teks lain.`;
+}
+
+/* ----------------------------------------------------------------------
+   5. GENERATE HANDLER
+   ---------------------------------------------------------------------- */
+const generateBtn = document.getElementById('generateBtn');
+const genIcon = document.getElementById('genIcon');
+const genLabel = document.getElementById('genLabel');
+const statusMsg = document.getElementById('statusMsg');
+
+generateBtn.addEventListener('click', async () => {
+  if (!apiKey) {
+    statusMsg.innerHTML = '<span class="text-red-600">⚠ Atur API Key terlebih dahulu (tombol di pojok kanan atas).</span>';
+    apiKeyModal.classList.remove('hidden');
+    apiKeyModal.classList.add('flex');
+    return;
+  }
+  const topik = document.getElementById('topik').value.trim();
+  if (!topik) {
+    statusMsg.innerHTML = '<span class="text-red-600">⚠ Isi Topik/Spesifikasi Materi terlebih dahulu.</span>';
+    return;
+  }
+
+  generateBtn.disabled = true;
+  genIcon.outerHTML = '<span class="spinner"></span>';
+  genLabel.textContent = 'Menyusun perangkat ajar…';
+  statusMsg.innerHTML = '<span class="text-ink-500">Sedang menghubungi model AI, proses ini bisa memakan waktu 20–60 detik…</span>';
+
+  try {
+    const prompt = buildUserPrompt();
+    const data = await callClaudeAPI(prompt);
+    generatedData = data;
+    renderAll(data);
+    document.getElementById('emptyState').classList.add('hidden');
+    statusMsg.innerHTML = '<span class="text-emerald-700">✓ Perangkat pembelajaran berhasil dibuat.</span>';
+  } catch (err) {
+    console.error(err);
+    statusMsg.innerHTML = `<span class="text-red-600">⚠ ${err.message}</span>`;
+  } finally {
+    generateBtn.disabled = false;
+    document.getElementById('genIcon') || (() => {})();
+    generateBtn.innerHTML = '<svg id="genIcon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"/></svg><span id="genLabel">Generate Perangkat Pembelajaran</span>';
+  }
+});
+
+/* ----------------------------------------------------------------------
+   6. TAB NAVIGATION
+   ---------------------------------------------------------------------- */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + currentTab).classList.add('active');
+  });
+});
+
+/* ----------------------------------------------------------------------
+   7. RENDER FUNCTIONS
+   ---------------------------------------------------------------------- */
+function esc(str) {
+  const div = document.createElement('div');
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
+
+function renderAll(data) {
+  renderModul(data.modul_ajar);
+  renderSlide(data.slide_presentasi);
+  renderKuis(data.kuis);
+  renderFlashcard(data.flashcard);
+  renderLkpd(data.lkpd);
+  renderGlosarium(data.glosarium);
+}
+
+function sectionTitle(text) {
+  return `<h3 class="font-serif text-navy-900 text-lg border-b border-gold-500/40 pb-2 mb-3">${esc(text)}</h3>`;
+}
+
+function renderModul(m) {
+  const el = document.getElementById('panel-modul');
+  const id = m.identitas;
+  el.innerHTML = `
+    <div>
+      ${sectionTitle('A. Identitas Modul Ajar')}
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm bg-ledger-50 rounded-md p-4 border border-navy-900/10">
+        <p><span class="text-ink-500">Penyusun:</span> ${esc(id.nama_penyusun)}</p>
+        <p><span class="text-ink-500">Mata Pelajaran:</span> ${esc(id.mata_pelajaran)}</p>
+        <p><span class="text-ink-500">Fase/Kelas:</span> ${esc(id.fase_kelas)}</p>
+        <p><span class="text-ink-500">Elemen:</span> ${esc(id.elemen)}</p>
+        <p><span class="text-ink-500">Topik:</span> ${esc(id.topik)}</p>
+        <p><span class="text-ink-500">Model Pembelajaran:</span> ${esc(id.model_pembelajaran)}</p>
+        <p><span class="text-ink-500">Alokasi Waktu:</span> ${esc(id.alokasi_waktu)}</p>
+      </div>
+    </div>
+    <div>${sectionTitle('B. Capaian Pembelajaran (CP)')}<p class="text-sm leading-relaxed">${esc(m.capaian_pembelajaran)}</p></div>
+    <div>${sectionTitle('C. Tujuan Pembelajaran (TP)')}
+      <ul class="text-sm space-y-1.5 list-disc pl-5">${m.tujuan_pembelajaran.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+    </div>
+    <div>${sectionTitle('D. Pemahaman Bermakna')}<p class="text-sm leading-relaxed">${esc(m.pemahaman_bermakna)}</p></div>
+    <div>${sectionTitle('E. Pertanyaan Pemantik')}
+      <ul class="text-sm space-y-1.5 list-disc pl-5">${m.pertanyaan_pemantik.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+    </div>
+    <div>${sectionTitle('F. Profil Pelajar Pancasila')}
+      <ul class="text-sm space-y-1.5 list-disc pl-5">${m.profil_pelajar_pancasila.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+    </div>
+    <div>${sectionTitle('G. Sarana &amp; Prasarana')}
+      <ul class="text-sm space-y-1.5 list-disc pl-5 grid grid-cols-1 sm:grid-cols-2">${m.sarana_prasarana.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+    </div>
+    <div>${sectionTitle('H. Langkah-Langkah Pembelajaran')}
+      <div class="space-y-4">
+        <div><p class="text-sm font-semibold text-emerald-700 mb-1.5">Pendahuluan</p><ul class="text-sm space-y-1.5 list-disc pl-5">${m.langkah_pembelajaran.pendahuluan.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>
+        <div><p class="text-sm font-semibold text-emerald-700 mb-1.5">Kegiatan Inti</p><ul class="text-sm space-y-2 list-disc pl-5">${m.langkah_pembelajaran.inti.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>
+        <div><p class="text-sm font-semibold text-emerald-700 mb-1.5">Penutup</p><ul class="text-sm space-y-1.5 list-disc pl-5">${m.langkah_pembelajaran.penutup.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>
+      </div>
+    </div>
+    <div>${sectionTitle('I. Asesmen')}
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="bg-ledger-50 border border-navy-900/10 rounded-md p-3"><p class="text-xs font-bold text-navy-900 mb-1">Diagnostik</p><p class="text-sm leading-relaxed">${esc(m.asesmen.diagnostik)}</p></div>
+        <div class="bg-ledger-50 border border-navy-900/10 rounded-md p-3"><p class="text-xs font-bold text-navy-900 mb-1">Formatif</p><p class="text-sm leading-relaxed">${esc(m.asesmen.formatif)}</p></div>
+        <div class="bg-ledger-50 border border-navy-900/10 rounded-md p-3"><p class="text-xs font-bold text-navy-900 mb-1">Sumatif</p><p class="text-sm leading-relaxed">${esc(m.asesmen.sumatif)}</p></div>
+      </div>
+    </div>`;
+}
+
+function renderSlide(slides) {
+  const el = document.getElementById('panel-slide');
+  el.innerHTML = slides.map(s => `
+    <div class="border border-navy-900/10 rounded-lg overflow-hidden">
+      <div class="bg-navy-900 text-white px-4 py-2 flex items-center justify-between">
+        <span class="font-serif text-sm">Slide ${s.no}</span>
+        <span class="text-xs text-gold-500 font-semibold truncate max-w-[70%] text-right">${esc(s.judul)}</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2">
+        <div class="p-4"><p class="text-xs font-bold text-ink-500 mb-2 uppercase tracking-wide">Isi Slide</p>
+          <ul class="text-sm list-disc pl-5 space-y-1">${s.konten.map(k => `<li>${esc(k)}</li>`).join('')}</ul>
+        </div>
+        <div class="p-4 bg-ledger-50 border-t md:border-t-0 md:border-l border-navy-900/10"><p class="text-xs font-bold text-emerald-700 mb-2 uppercase tracking-wide">Catatan Pemateri</p>
+          <p class="text-sm leading-relaxed">${esc(s.catatan_pemateri)}</p>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderKuis(kuis) {
+  const el = document.getElementById('panel-kuis');
+  let html = `<div class="flex items-center justify-between no-print">
+      <p class="text-xs text-ink-500">5 Soal Pilihan Ganda HOTS + 2 Soal Kasus/Tabel Transaksi</p>
+      <button id="toggleKunci" class="text-xs font-medium border border-gold-500 text-gold-600 hover:bg-gold-100 rounded-md px-3 py-1.5">Tampilkan Kunci Jawaban</button>
+    </div>`;
+
+  html += `<div>${sectionTitle('A. Soal Pilihan Ganda')}<div class="space-y-4">`;
+  kuis.pilihan_ganda.forEach((q, i) => {
+    html += `<div class="border border-navy-900/10 rounded-md p-4">
+      <p class="text-sm font-semibold mb-2">${i + 1}. ${esc(q.soal)}</p>
+      <ul class="text-sm space-y-1 pl-1">
+        ${Object.entries(q.opsi).map(([k, v]) => `<li class="${k === q.jawaban ? 'kunci-mark' : ''}"><span class="font-medium">${k}.</span> ${esc(v)}</li>`).join('')}
+      </ul>
+      <div class="kunci-block hidden mt-3 pt-3 border-t border-dashed border-navy-900/15 text-sm">
+        <p class="text-emerald-700 font-semibold mb-1">Jawaban: ${esc(q.jawaban)}</p>
+        <p class="text-ink-700 leading-relaxed">${esc(q.pembahasan)}</p>
+      </div>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  html += `<div>${sectionTitle('B. Soal Kasus / Tabel Transaksi')}<div class="space-y-4">`;
+  kuis.soal_kasus.forEach((q, i) => {
+    html += `<div class="border border-navy-900/10 rounded-md p-4">
+      <p class="text-sm font-semibold mb-2">Kasus ${i + 1}</p>
+      <p class="text-sm leading-relaxed mb-2">${esc(q.soal)}</p>
+      ${q.data_tabel ? `<pre class="text-xs font-mono bg-ledger-50 border border-navy-900/10 rounded-md p-3 overflow-x-auto whitespace-pre">${esc(q.data_tabel)}</pre>` : ''}
+      <div class="kunci-block hidden mt-3 pt-3 border-t border-dashed border-navy-900/15 text-sm">
+        <p class="text-emerald-700 font-semibold mb-1">Jawaban:</p>
+        <p class="text-ink-700 leading-relaxed mb-2 whitespace-pre-line">${esc(q.jawaban)}</p>
+        <p class="text-emerald-700 font-semibold mb-1">Pembahasan:</p>
+        <p class="text-ink-700 leading-relaxed whitespace-pre-line">${esc(q.pembahasan)}</p>
+      </div>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  el.innerHTML = html;
+
+  const toggleBtn = document.getElementById('toggleKunci');
+  let shown = false;
+  toggleBtn.addEventListener('click', () => {
+    shown = !shown;
+    document.querySelectorAll('.kunci-block').forEach(b => b.classList.toggle('hidden', !shown));
+    toggleBtn.textContent = shown ? 'Sembunyikan Kunci Jawaban' : 'Tampilkan Kunci Jawaban';
+  });
+}
+
+function renderFlashcard(cards) {
+  const grid = document.getElementById('flashcardGrid');
+  grid.innerHTML = cards.map((c, i) => `
+    <div class="flip-card" data-idx="${i}">
+      <div class="flip-card-inner">
+        <div class="flip-face flip-front bg-navy-900 text-white justify-center items-center text-center">
+          <p class="font-serif text-lg leading-snug">${esc(c.istilah_id)}</p>
+          ${c.istilah_en ? `<p class="text-xs text-gold-500 mt-1.5 font-mono">${esc(c.istilah_en)}</p>` : ''}
+          <p class="text-[10px] text-white/40 mt-4 no-print">klik untuk membalik</p>
+        </div>
+        <div class="flip-face flip-back bg-emerald-100 border border-emerald-600/30 justify-start overflow-y-auto scrollbar-thin">
+          <p class="text-xs font-bold text-emerald-700 mb-1 uppercase tracking-wide">Definisi</p>
+          <p class="text-sm text-ink-900 leading-relaxed mb-2">${esc(c.definisi)}</p>
+          <p class="text-xs font-bold text-emerald-700 mb-1 uppercase tracking-wide">Contoh Kasus</p>
+          <p class="text-sm text-ink-700 leading-relaxed">${esc(c.contoh_kasus)}</p>
+        </div>
+      </div>
+    </div>`).join('');
+
+  grid.querySelectorAll('.flip-card').forEach(card => {
+    card.addEventListener('click', () => card.classList.toggle('flipped'));
+  });
+}
+
+function renderLkpd(l) {
+  const el = document.getElementById('panel-lkpd');
+  el.innerHTML = `
+    <div>${sectionTitle('LKPD: ' + l.judul)}<p class="text-sm leading-relaxed italic text-ink-700">${esc(l.petunjuk)}</p></div>
+    <div><p class="text-sm font-semibold text-emerald-700 mb-1.5">Alat &amp; Bahan</p>
+      <ul class="text-sm list-disc pl-5 space-y-1">${l.alat_bahan.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+    </div>
+    <div><p class="text-sm font-semibold text-emerald-700 mb-1.5">Langkah Kerja</p>
+      <ol class="text-sm list-decimal pl-5 space-y-1.5">${l.langkah_kerja.map(t => `<li>${esc(t)}</li>`).join('')}</ol>
+    </div>
+    <div><p class="text-sm font-semibold text-emerald-700 mb-1.5">Pertanyaan Diskusi</p>
+      <ul class="text-sm list-disc pl-5 space-y-1">${l.pertanyaan_diskusi.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+    </div>
+    <div>
+      <p class="text-sm font-semibold text-emerald-700 mb-2">Rubrik Penilaian Analitis &amp; Kinerja Praktik</p>
+      <div class="overflow-x-auto scrollbar-thin">
+        <table class="w-full text-xs border-collapse">
+          <thead><tr class="bg-navy-900 text-white">
+            <th class="p-2 text-left border border-navy-900/20">Aspek</th>
+            <th class="p-2 text-left border border-navy-900/20">Skor 4 (Sangat Baik)</th>
+            <th class="p-2 text-left border border-navy-900/20">Skor 3 (Baik)</th>
+            <th class="p-2 text-left border border-navy-900/20">Skor 2 (Cukup)</th>
+            <th class="p-2 text-left border border-navy-900/20">Skor 1 (Perlu Bimbingan)</th>
+          </tr></thead>
+          <tbody>
+            ${l.rubrik_penilaian.kriteria.map((k, i) => `
+              <tr class="${i % 2 === 0 ? 'bg-white' : 'bg-ledger-50'}">
+                <td class="p-2 border border-navy-900/10 font-semibold align-top">${esc(k.aspek)}</td>
+                <td class="p-2 border border-navy-900/10 align-top">${esc(k.skor_4)}</td>
+                <td class="p-2 border border-navy-900/10 align-top">${esc(k.skor_3)}</td>
+                <td class="p-2 border border-navy-900/10 align-top">${esc(k.skor_2)}</td>
+                <td class="p-2 border border-navy-900/10 align-top">${esc(k.skor_1)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function renderGlosarium(items) {
+  const el = document.getElementById('panel-glosarium');
+  el.innerHTML = `
+    <input id="glosariumFilter" type="text" placeholder="Cari istilah…" class="no-print w-full text-sm border border-navy-900/15 rounded-md px-3 py-2 mb-3 bg-ledger-50">
+    <div id="glosariumList" class="divide-y divide-navy-900/10 border border-navy-900/10 rounded-md overflow-hidden">
+      ${items.map(g => `
+        <div class="glos-item p-3 bg-white" data-term="${esc(g.istilah).toLowerCase()}">
+          <p class="text-sm font-bold text-navy-900">${esc(g.istilah)}</p>
+          <p class="text-sm text-ink-700 leading-relaxed mt-0.5">${esc(g.definisi)}</p>
+          <p class="text-xs text-emerald-700 mt-1"><span class="font-semibold">Konteks industri:</span> ${esc(g.referensi_industri)}</p>
+        </div>`).join('')}
+    </div>`;
+
+  document.getElementById('glosariumFilter').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    document.querySelectorAll('.glos-item').forEach(item => {
+      item.style.display = item.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+}
+
+/* ----------------------------------------------------------------------
+   8. COPY TO CLIPBOARD (per tab, plain text)
+   ---------------------------------------------------------------------- */
+function toPlainText(tab) {
+  if (!generatedData) return '';
+  const d = generatedData;
+  const line = (t = '') => t + '\n';
+  let out = '';
+
+  if (tab === 'modul') {
+    const m = d.modul_ajar, id = m.identitas;
+    out += line('MODUL AJAR / RPP');
+    out += line(`Mata Pelajaran: ${id.mata_pelajaran}`);
+    out += line(`Fase/Kelas: ${id.fase_kelas}`);
+    out += line(`Elemen: ${id.elemen}`);
+    out += line(`Topik: ${id.topik}`);
+    out += line(`Model Pembelajaran: ${id.model_pembelajaran}`);
+    out += line(`Alokasi Waktu: ${id.alokasi_waktu}\n`);
+    out += line('CAPAIAN PEMBELAJARAN\n' + m.capaian_pembelajaran + '\n');
+    out += line('TUJUAN PEMBELAJARAN\n' + m.tujuan_pembelajaran.map(t => '- ' + t).join('\n') + '\n');
+    out += line('PEMAHAMAN BERMAKNA\n' + m.pemahaman_bermakna + '\n');
+    out += line('PERTANYAAN PEMANTIK\n' + m.pertanyaan_pemantik.map(t => '- ' + t).join('\n') + '\n');
+    out += line('PROFIL PELAJAR PANCASILA\n' + m.profil_pelajar_pancasila.map(t => '- ' + t).join('\n') + '\n');
+    out += line('SARANA & PRASARANA\n' + m.sarana_prasarana.map(t => '- ' + t).join('\n') + '\n');
+    out += line('LANGKAH PEMBELAJARAN');
+    out += line('Pendahuluan:\n' + m.langkah_pembelajaran.pendahuluan.map(t => '- ' + t).join('\n'));
+    out += line('Inti:\n' + m.langkah_pembelajaran.inti.map(t => '- ' + t).join('\n'));
+    out += line('Penutup:\n' + m.langkah_pembelajaran.penutup.map(t => '- ' + t).join('\n') + '\n');
+    out += line('ASESMEN');
+    out += line('Diagnostik: ' + m.asesmen.diagnostik);
+    out += line('Formatif: ' + m.asesmen.formatif);
+    out += line('Sumatif: ' + m.asesmen.sumatif);
+  } else if (tab === 'slide') {
+    d.slide_presentasi.forEach(s => {
+      out += line(`SLIDE ${s.no}: ${s.judul}`);
+      out += line(s.konten.map(k => '- ' + k).join('\n'));
+      out += line('Catatan Pemateri: ' + s.catatan_pemateri + '\n');
+    });
+  } else if (tab === 'kuis') {
+    out += line('SOAL PILIHAN GANDA\n');
+    d.kuis.pilihan_ganda.forEach((q, i) => {
+      out += line(`${i + 1}. ${q.soal}`);
+      Object.entries(q.opsi).forEach(([k, v]) => out += line(`   ${k}. ${v}`));
+      out += line(`   Jawaban: ${q.jawaban}`);
+      out += line(`   Pembahasan: ${q.pembahasan}\n`);
+    });
+    out += line('SOAL KASUS\n');
+    d.kuis.soal_kasus.forEach((q, i) => {
+      out += line(`Kasus ${i + 1}: ${q.soal}`);
+      if (q.data_tabel) out += line(q.data_tabel);
+      out += line(`Jawaban: ${q.jawaban}`);
+      out += line(`Pembahasan: ${q.pembahasan}\n`);
+    });
+  } else if (tab === 'flashcard') {
+    d.flashcard.forEach(c => {
+      out += line(`${c.istilah_id}${c.istilah_en ? ' (' + c.istilah_en + ')' : ''}`);
+      out += line('Definisi: ' + c.definisi);
+      out += line('Contoh Kasus: ' + c.contoh_kasus + '\n');
+    });
+  } else if (tab === 'lkpd') {
+    const l = d.lkpd;
+    out += line('LKPD: ' + l.judul);
+    out += line('Petunjuk: ' + l.petunjuk + '\n');
+    out += line('Alat & Bahan:\n' + l.alat_bahan.map(t => '- ' + t).join('\n') + '\n');
+    out += line('Langkah Kerja:\n' + l.langkah_kerja.map((t, i) => `${i + 1}. ${t}`).join('\n') + '\n');
+    out += line('Pertanyaan Diskusi:\n' + l.pertanyaan_diskusi.map(t => '- ' + t).join('\n') + '\n');
+    out += line('Rubrik Penilaian:');
+    l.rubrik_penilaian.kriteria.forEach(k => {
+      out += line(`- ${k.aspek} | 4: ${k.skor_4} | 3: ${k.skor_3} | 2: ${k.skor_2} | 1: ${k.skor_1}`);
+    });
+  } else if (tab === 'glosarium') {
+    d.glosarium.forEach(g => {
+      out += line(`${g.istilah}: ${g.definisi} (Konteks industri: ${g.referensi_industri})`);
+    });
+  }
+  return out;
+}
+
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  if (!generatedData) return;
+  const text = toPlainText(currentTab);
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = document.getElementById('copyBtn');
+    const original = btn.innerHTML;
+    btn.innerHTML = '✓ Tersalin';
+    setTimeout(() => btn.innerHTML = original, 1500);
+  } catch (e) {
+    alert('Gagal menyalin. Salin manual dari teks berikut:\n\n' + text);
+  }
+});
+
+/* ----------------------------------------------------------------------
+   9. PRINT / EXPORT PDF
+   Saat mencetak, seluruh panel ditampilkan berurutan (bukan hanya tab aktif).
+   ---------------------------------------------------------------------- */
+document.getElementById('printBtn').addEventListener('click', () => {
+  if (!generatedData) { alert('Silakan Generate perangkat pembelajaran terlebih dahulu.'); return; }
+  document.querySelectorAll('.kunci-block').forEach(b => b.classList.remove('hidden'));
+  window.print();
+});
+</script>
+</body>
+</html>
